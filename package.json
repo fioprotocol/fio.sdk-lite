@@ -7,7 +7,7 @@
     "url": "https://github.com/fioprotocol/fio.sdk-lite.git"
   },
   "license": "(MIT-0 OR Apache-2.0)",
-  "main": "./dist/bundle.js",
+  "main": "./dist/index.js",
   "files": [
     "dist/"
   ],

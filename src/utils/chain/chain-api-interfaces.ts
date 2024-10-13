@@ -45,8 +45,8 @@ export type SignatureProviderArgs = {
   /** Chain transaction is for */
   chainId: string;
 
-  /** Private key buffer needed to sign the transaction */
-  privateKeyBuffer: Uint8Array;
+  /** Private key needed to sign the transaction */
+  privateKey: string;
 
   /** Transaction to sign */
   serializedTransaction: Uint8Array;

@@ -15,6 +15,7 @@ import { checkDecode } from './key_utils';
 import fioAbi from '../../abi/encryption-fio.abi.json';
 import { FIO_CHAIN_NAME } from '../../constants';
 import { Content } from '../../types';
+import { getPrivateKeyInt } from '../getKeys';
 
 const curve = getCurveByName('secp256k1');
 
@@ -128,19 +129,19 @@ const getSharedSecret = ({
 export const getCipherContent = ({
   fioContentType,
   content,
-  privateKeyBuffer,
+  privateKey,
   encryptionPublicKey,
 }: {
   fioContentType: string;
   content: Content;
-  privateKeyBuffer: Buffer;
+  privateKey: string;
   encryptionPublicKey: string;
 }): string => {
   const buffer = new SerialBuffer({
     textEncoder,
     textDecoder,
   });
-  const privateKeyInt = BigInteger.fromBuffer(privateKeyBuffer);
+  const privateKeyInt = getPrivateKeyInt({ privateKey });
 
   const sharedSecret = getSharedSecret({
     privateKeyInt,
@@ -163,14 +164,14 @@ export const getUncipherContent = ({
   encryptionPublicKey,
   fioContentType,
   content,
-  privateKeyBuffer,
+  privateKey,
 }: {
   encryptionPublicKey: string;
   fioContentType: string;
   content: string;
-  privateKeyBuffer: Buffer;
+  privateKey: string;
 }): Content => {
-  const privateKeyInt = BigInteger.fromBuffer(privateKeyBuffer);
+  const privateKeyInt = getPrivateKeyInt({ privateKey });
 
   const sharedSecret = getSharedSecret({
     privateKeyInt,

@@ -5,12 +5,12 @@ export const cypherContent = ({
   content,
   contentType,
   encryptionPublicKey,
-  privateKeyBuffer,
+  privateKey,
 }: {
   content: DataParams['content'];
   contentType: string;
   encryptionPublicKey: string;
-  privateKeyBuffer: Buffer;
+  privateKey: string;
 }): string => {
   if (!content) {
     throw new Error('Missing content parameter');
@@ -25,7 +25,7 @@ export const cypherContent = ({
   const cypheredContent = getCipherContent({
     content,
     fioContentType: contentType,
-    privateKeyBuffer: privateKeyBuffer.subarray(1),
+    privateKey,
     encryptionPublicKey,
   });
 

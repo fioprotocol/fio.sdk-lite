@@ -7,8 +7,7 @@ import type { RequestParamsTranasction, SignedTransaction } from '../../types';
 import { getChainInfo } from '../chain/chain-get-info';
 import { signTx } from '../chain/chain-jssig';
 import { arrayToHex } from '../chain/chain-numeric';
-import { publicKeyFromPrivateKey } from '../encrypt/key_utils';
-import { getPrivateKeyBuffer } from '../getKeys';
+import { getPublicKey } from '../getKeys';
 import { serializeAction } from '../serialize/serialize-action';
 import { serializeTransaction } from '../serialize/serialize-transaction';
 import { createTransaction } from './create-transaction';
@@ -59,8 +58,7 @@ export const signTransaction = async (
         timeoutOffset = DEFAULT_TIMEOUT_OFFSET,
       } = actionParamItem;
 
-      const privateKeyBuffer = getPrivateKeyBuffer({ privateKey });
-      const fioPubKey = publicKeyFromPrivateKey({ privateKeyBuffer });
+      const fioPubKey = getPublicKey({ privateKey });
 
       const transaction = createTransaction({
         account,
@@ -89,7 +87,7 @@ export const signTransaction = async (
             content: data.content,
             contentType,
             encryptionPublicKey,
-            privateKeyBuffer,
+            privateKey,
           });
 
           if (
@@ -116,7 +114,7 @@ export const signTransaction = async (
 
       const signedTxnSignatures = signTx({
         chainId,
-        privateKeyBuffer: privateKeyBuffer.subarray(1),
+        privateKey,
         serializedTransaction,
       });
 

@@ -1,24 +1,8 @@
 import assert from 'assert';
-import BigInteger from 'bigi';
 import base58 from 'bs58';
 import { Buffer } from 'buffer';
-import ecurve from 'ecurve';
 
-import { ripemd160 } from './hash';
-import { FIO_CHAIN_NAME } from '../../constants';
-
-const curve = ecurve.getCurveByName('secp256k1');
-
-export const publicKeyFromPrivateKey = ({
-  privateKeyBuffer,
-}: {
-  privateKeyBuffer: Buffer;
-}): string => {
-  const privateKeyInt = BigInteger.fromBuffer(privateKeyBuffer);
-  const Q = curve.G.multiply(privateKeyInt);
-
-  return FIO_CHAIN_NAME + checkEncode({ keyBuffer: Q.getEncoded(true) });
-};
+import { ripemd160, sha256 } from './hash';
 
 export const checkEncode = ({
   keyBuffer,
@@ -55,17 +39,21 @@ export const checkDecode = ({
   const checksum = buffer.subarray(-4);
   const key = buffer.subarray(0, -4);
 
-  const check = [key];
+  let newCheck;
 
-  if (keyType) {
-    check.push(Buffer.from(keyType));
+  if (keyType === 'sha256x2') {
+    const hashOne = sha256(key);
+    const hash = Buffer.isBuffer(hashOne) ? sha256(hashOne) : hashOne;
+    newCheck = Buffer.isBuffer(hash) ? hash.subarray(0, 4) : hash.slice(0, 4);
+  } else {
+    const check = [key];
+
+    if (keyType) {
+      check.push(Buffer.from(keyType));
+    }
+    const hash = ripemd160(Buffer.concat(check));
+    newCheck = hash instanceof Buffer ? hash.subarray(0, 4) : hash.slice(0, 4);
   }
-
-  const newCheckBuff = ripemd160(Buffer.concat(check)); // PVT
-  const newCheck =
-    newCheckBuff instanceof Buffer
-      ? newCheckBuff.subarray(0, 4)
-      : newCheckBuff.slice(0, 4);
 
   if (checksum.toString() !== newCheck.toString()) {
     throw new Error(

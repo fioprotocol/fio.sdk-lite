@@ -7,6 +7,7 @@ import { encoding } from 'create-hash';
 import { ecdsaSign, calcPubKeyRecoveryParam } from './ecdsa';
 import { sha256 } from './hash';
 import { checkEncode } from './key_utils';
+import { getPrivateKeyInt } from '../getKeys';
 
 const curve = ecurve.getCurveByName('secp256k1');
 
@@ -32,11 +33,11 @@ const signature = (r: BigInteger, s: BigInteger, i: number): string => {
 const signHash = ({
   dataSha256,
   encoding = 'hex',
-  privateKeyBuffer,
+  privateKey,
 }: {
   dataSha256: string | Buffer;
   encoding?: encoding;
-  privateKeyBuffer: Uint8Array;
+  privateKey: string;
 }): string => {
   if (typeof dataSha256 === 'string') {
     dataSha256 = Buffer.from(dataSha256, encoding);
@@ -45,7 +46,7 @@ const signHash = ({
     throw new Error('dataSha256: 32-byte buffer required');
   }
 
-  const privateKeyInt = BigInteger.fromBuffer(privateKeyBuffer);
+  const privateKeyInt = getPrivateKeyInt({ privateKey });
   const publicKeyCurve = curve.G.multiply(privateKeyInt);
 
   let der, e: BigInteger, ecsignature, i, lenR, lenS, nonce;
@@ -89,11 +90,11 @@ const signHash = ({
 export const signSignature = ({
   data,
   encoding = 'utf8',
-  privateKeyBuffer,
+  privateKey,
 }: {
   data: Buffer | string;
   encoding?: BufferEncoding;
-  privateKeyBuffer: Uint8Array;
+  privateKey: string;
 }): string => {
   if (typeof data === 'string') {
     data = Buffer.from(data, encoding);
@@ -103,5 +104,5 @@ export const signSignature = ({
   data = Buffer.isBuffer(dataSha256)
     ? dataSha256
     : Buffer.from(dataSha256, encoding);
-  return signHash({ dataSha256: data, privateKeyBuffer });
+  return signHash({ dataSha256: data, privateKey });
 };

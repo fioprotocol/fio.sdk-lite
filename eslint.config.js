@@ -22,4 +22,7 @@ module.exports = [
     },
   },
   ...compat.extends('plugin:prettier/recommended'),
+  {
+    ignores: ['dist/**', 'node_modules/**', 'docs/**'], // Moved here to apply globally
+  },
 ];

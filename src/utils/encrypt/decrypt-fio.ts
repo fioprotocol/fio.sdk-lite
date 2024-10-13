@@ -1,5 +1,4 @@
 import { DecryptedContent } from '../../types';
-import { getPrivateKeyBuffer } from '../getKeys';
 import { getUncipherContent } from './encrypt-fio';
 
 export const decryptContent = ({
@@ -23,13 +22,11 @@ export const decryptContent = ({
     throw new Error('Missing content type parameter to decrypt');
   }
 
-  const privateKeyBuffer = getPrivateKeyBuffer({ privateKey });
-
   const uncipheredContent = getUncipherContent({
     encryptionPublicKey,
     fioContentType,
     content,
-    privateKeyBuffer: privateKeyBuffer.subarray(1),
+    privateKey,
   });
 
   return uncipheredContent;

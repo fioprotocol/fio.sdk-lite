@@ -5,7 +5,7 @@ import type { SignatureProviderArgs } from './chain-api-interfaces';
 
 export const signTx = ({
   chainId,
-  privateKeyBuffer,
+  privateKey,
   serializedTransaction,
 }: SignatureProviderArgs): string[] => {
   const signBuf = Buffer.concat([
@@ -14,7 +14,7 @@ export const signTx = ({
     Buffer.from(new Uint8Array(32)),
   ]);
 
-  const signatures = [signSignature({ data: signBuf, privateKeyBuffer })];
+  const signatures = [signSignature({ data: signBuf, privateKey })];
 
   return signatures;
 };
