@@ -13,7 +13,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "docs": "typedoc --out docs src",
+    "docs": "typedoc",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"./**/*.{ts,js,json,css,md}\"",

@@ -3,7 +3,7 @@ import BigInteger from 'bigi';
 export type DecryptedContent = {
   payer_public_address?: string | undefined;
   payee_public_address: string;
-  amount: string;
+  amount: string | number;
   chain_code: string;
   token_code: string;
   status?: string;
@@ -13,10 +13,10 @@ export type DecryptedContent = {
   offline_url: string | null;
 };
 
-export type Content = DecryptedContent | string | Json;
+export type Content = DecryptedContent | string;
 
 export type DataParams = {
-  amount?: string;
+  amount?: string | number;
   bundle_sets?: number;
   chain_code?: string;
   content?: Content;
@@ -66,12 +66,15 @@ export type RequestParamsItem = {
   nonce?: string;
 };
 
-export type RequestParams = {
-  apiUrl?: string;
-} & RequestParamsItem;
 export type RequestParamsTranasction = {
+  /**
+   * The apiUrl is a FIO Action server URL e.g. mainnet - https://fio.blockpane.com;
+   **/
   apiUrl: string;
   actionParams: Array<RequestParamsItem>;
+  /**
+   * The privateKey is a FIO Private key e.g. 5JTmqev7ZsryGGkN6z4FRzd4ELQJLNZuhtQhobVVsJsBHnXxFCw;
+   **/
   privateKey: string;
 };
 

@@ -14,7 +14,7 @@ import { checkDecode } from './key_utils';
 
 import fioAbi from '../../abi/encryption-fio.abi.json';
 import { FIO_CHAIN_NAME } from '../../constants';
-import { Content } from '../../types';
+import { Content, DecryptedContent } from '../../types';
 import { getPrivateKeyInt } from '../getKeys';
 
 const curve = getCurveByName('secp256k1');
@@ -170,7 +170,7 @@ export const getUncipherContent = ({
   fioContentType: string;
   content: string;
   privateKey: string;
-}): Content => {
+}): DecryptedContent => {
   const privateKeyInt = getPrivateKeyInt({ privateKey });
 
   const sharedSecret = getSharedSecret({

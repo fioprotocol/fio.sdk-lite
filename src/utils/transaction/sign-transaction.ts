@@ -13,14 +13,6 @@ import { serializeTransaction } from '../serialize/serialize-transaction';
 import { createTransaction } from './create-transaction';
 import { cypherContent } from './cypher-content';
 
-/**
- * Signs a nonce with the provided private key.
- *
- * @param apiUrl - The apiUrl is the url for FIO action server e.g. https://fio.blockpane.com .
- * @param actionParams - The action params for sign a transaction.
- * @param privateKey - The FIO private Key e.g. .
- * @returns The signed transactions as a JSON.
- */
 export const signTransaction = async (
   params: RequestParamsTranasction
 ): Promise<string> => {
