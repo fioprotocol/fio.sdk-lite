@@ -5,7 +5,7 @@ import { Curve, Point } from 'ecurve';
 import { ECSignature } from './ecsignature';
 import { enforceType } from './enforce_types';
 import { HmacSHA256, sha256 } from './hash';
-import { ECSignatureType } from '../../types';
+import { ECSignatureType, SignatureObject } from '../../types';
 
 // https://tools.ietf.org/html/rfc6979#section-3.2
 const deterministicGenerateK = ({
@@ -229,4 +229,68 @@ export const calcPubKeyRecoveryParam = ({
   }
 
   throw new Error('Unable to find valid recovery factor');
+};
+
+const verifyRaw = ({
+  curve,
+  e,
+  signature,
+  Q,
+}: {
+  curve: Curve;
+  e: BigInteger;
+  signature: SignatureObject;
+  Q: Point;
+}) => {
+  const n = curve.n;
+  const G = curve.G;
+
+  const r = signature.r;
+  const s = signature.s;
+
+  // 1.4.1 Enforce r and s are both integers in the interval [1, n − 1]
+  if ((r.signum() as unknown as number) <= 0 || r.compareTo(n) >= 0)
+    return false;
+  if ((s.signum() as unknown as number) <= 0 || s.compareTo(n) >= 0)
+    return false;
+
+  // c = s^-1 mod n
+  const c = s.modInverse(n);
+
+  // 1.4.4 Compute u1 = es^−1 mod n
+  //               u2 = rs^−1 mod n
+  const u1 = e.multiply(c).mod(n);
+  const u2 = r.multiply(c).mod(n);
+
+  // 1.4.5 Compute R = (xR, yR) = u1G + u2Q
+  const R = G.multiplyTwo(u1, Q, u2);
+
+  // 1.4.5 (cont.) Enforce R is not at infinity
+  if (curve.isInfinity(R)) return false;
+
+  // 1.4.6 Convert the field element R.x to an integer
+  const xR = R.affineX;
+
+  // 1.4.7 Set v = xR mod n
+  const v = xR.mod(n);
+
+  // 1.4.8 If v = r, output "valid", and if v != r, output "invalid"
+  return v.equals(r);
+};
+
+export const verify = ({
+  curve,
+  hash,
+  signature,
+  Q,
+}: {
+  curve: Curve;
+  hash: Buffer;
+  signature: SignatureObject;
+  Q: Point;
+}) => {
+  // 1.4.2 H = Hash(M), already done by the user
+  // 1.4.3 e = H
+  const e = BigInteger.fromBuffer(hash);
+  return verifyRaw({ curve, e, signature, Q });
 };

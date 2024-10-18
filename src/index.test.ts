@@ -3,6 +3,7 @@ import {
   getPublicKey,
   signNonce,
   signTransaction,
+  verifySignature,
 } from './index';
 
 const MEMO_PHRASE = 'Hello FIO SDK Lite';
@@ -57,14 +58,21 @@ describe('Test methods', () => {
   });
 
   it('returns signed nonce', async () => {
+    const nonce =
+      '6d2242964fbf8a611c26b5cdabec56ff318cf75484fefa4ceebc2a1bc9ea4070';
+
     const result = signNonce({
-      nonce: '6d2242964fbf8a611c26b5cdabec56ff318cf75484fefa4ceebc2a1bc9ea4070',
+      nonce,
       privateKey: '5JTmqev7ZsryGGkN6z4FRzd4ELQJLNZuhtQhobVVsJsBHnXxFCw',
     });
 
-    expect(result).toEqual(
-      'SIG_K1_K7CGyRFna4ZcwaGLgrXDP21qu1rRugexiLDT9qiGTCyC2xpxc1wfTp4tbh39ybm617VbGAUaePccAAdRm38smm28p1RHBR'
-    );
+    const isVerified = verifySignature({
+      data: nonce,
+      signature: result,
+      publicKey: 'FIO7MYkz3serGGGanVPnPPupE1xSm1t7t8mWJ3H7KEd2vS2ZZbXBF',
+    });
+
+    expect(isVerified).toEqual(true);
   });
 
   it('returns signed transaction', async () => {

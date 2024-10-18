@@ -138,6 +138,12 @@ export type SignedTransaction = {
   packed_trx: string;
 };
 
+export type SignatureObject = {
+  r: BigInteger;
+  s: BigInteger;
+  i: number;
+};
+
 export type ECSignatureType = {
   r: BigInteger;
   s: BigInteger;

@@ -1,13 +1,16 @@
 import assert from 'assert';
 import BigInteger from 'bigi';
 import { Buffer } from 'buffer';
-import ecurve from 'ecurve';
+import ecurve, { Point } from 'ecurve';
 import { encoding } from 'create-hash';
 
-import { ecdsaSign, calcPubKeyRecoveryParam } from './ecdsa';
+import { ecdsaSign, calcPubKeyRecoveryParam, verify } from './ecdsa';
 import { sha256 } from './hash';
-import { checkEncode } from './key_utils';
+import { checkEncode, checkDecode } from './key_utils';
 import { getPrivateKeyInt } from '../getKeys';
+import { FIO_CHAIN_NAME } from '../../constants';
+
+import { SignatureObject } from '../../types';
 
 const curve = ecurve.getCurveByName('secp256k1');
 
@@ -87,6 +90,97 @@ const signHash = ({
   return signature(ecsignature.r, ecsignature.s, i);
 };
 
+const signatureFromBuffer = (buf: Buffer): SignatureObject => {
+  let i, r, s;
+  assert(Buffer.isBuffer(buf), 'Buffer is required');
+  assert.equal(buf.length, 65, 'Invalid signature length');
+  i = buf.readUInt8(0);
+  assert.equal(i - 27, (i - 27) & 7, 'Invalid signature parameter');
+  r = BigInteger.fromBuffer(buf.subarray(1, 33));
+  s = BigInteger.fromBuffer(buf.subarray(33));
+  return { r, s, i };
+};
+
+const signatureFromHex = (hex: string): SignatureObject => {
+  const hexBuffer = Buffer.from(hex, 'hex');
+
+  return signatureFromBuffer(hexBuffer);
+};
+
+const signatureFromString = (signature: string): SignatureObject => {
+  assert.equal(typeof signature, 'string', 'signature');
+  const match = signature.match(/^SIG_([A-Za-z0-9]+)_([A-Za-z0-9]+)$/);
+  assert(
+    match != null && match.length === 3,
+    'Expecting signature like: SIG_K1_base58signature..'
+  );
+  const [, keyType, keyString] = match;
+  assert.equal(keyType, 'K1', 'K1 signature expected');
+  return signatureFromBuffer(checkDecode({ keyString, keyType }));
+};
+
+const getSignatureObj = (
+  o: string | Buffer | SignatureObject
+): SignatureObject => {
+  const signature = o
+    ? typeof o === 'object' && !Buffer.isBuffer(o) && o.r && o.s && o.i
+      ? o
+      : typeof o === 'string' && o.length === 130
+        ? signatureFromHex(o)
+        : typeof o === 'string' && o.length !== 130
+          ? signatureFromString(o)
+          : Buffer.isBuffer(o)
+            ? signatureFromBuffer(o)
+            : null
+    : null; /*null or undefined*/
+
+  if (!signature) {
+    throw new TypeError('signature should be a hex string or buffer');
+  }
+
+  return signature;
+};
+
+const verifyHash = ({
+  dataSha256,
+  encoding = 'hex',
+  publicKey,
+  signature,
+}: {
+  dataSha256: string | Buffer;
+  encoding?: encoding;
+  publicKey: string;
+  signature: string;
+}): boolean => {
+  if (typeof dataSha256 === 'string') {
+    dataSha256 = Buffer.from(dataSha256, encoding);
+  }
+  if (dataSha256.length !== 32 || !Buffer.isBuffer(dataSha256)) {
+    throw new Error('dataSha256: 32-bytes required');
+  }
+
+  const prefixMatch = new RegExp('^' + FIO_CHAIN_NAME);
+
+  let publicKeySerialized = publicKey;
+
+  if (prefixMatch.test(publicKey)) {
+    publicKeySerialized = publicKey.substring(FIO_CHAIN_NAME.length);
+  }
+
+  const publicKeyBuffer = checkDecode({ keyString: publicKeySerialized });
+
+  const publicKeyInt: Point = ecurve.Point.decodeFrom(curve, publicKeyBuffer);
+
+  const signatureObj = getSignatureObj(signature);
+
+  return verify({
+    curve,
+    hash: dataSha256,
+    signature: signatureObj,
+    Q: publicKeyInt,
+  });
+};
+
 export const signSignature = ({
   data,
   encoding = 'utf8',
@@ -105,4 +199,28 @@ export const signSignature = ({
     ? dataSha256
     : Buffer.from(dataSha256, encoding);
   return signHash({ dataSha256: data, privateKey });
+};
+
+export const verifySignature = ({
+  signature,
+  data,
+  encoding = 'utf8',
+  publicKey,
+}: {
+  data: Buffer | string;
+  encoding?: BufferEncoding;
+  publicKey: string;
+  signature: string;
+}): boolean => {
+  if (typeof data === 'string') {
+    data = Buffer.from(data, encoding);
+  }
+  assert(Buffer.isBuffer(data), 'data is a required String or Buffer');
+
+  const dataSha256 = sha256(data);
+  data = Buffer.isBuffer(dataSha256)
+    ? dataSha256
+    : Buffer.from(dataSha256, encoding);
+
+  return verifyHash({ dataSha256: data, publicKey, signature });
 };
