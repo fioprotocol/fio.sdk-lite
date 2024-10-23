@@ -8,7 +8,7 @@ import {
 
 const MEMO_PHRASE = 'Hello FIO SDK Lite';
 
-const apiUrl = 'https://test.fio.eosusa.io';
+const apiUrl = 'https://testnet.fioprotocol.io';
 const transactionActionParams = {
   apiUrl,
   actionParams: [
