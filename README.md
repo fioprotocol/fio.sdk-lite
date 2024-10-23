@@ -2,11 +2,11 @@
 
 FIO SDK Lite is a lightweight library for signing transactions, decrypting FIO Requests, and signing nonces on the FIO blockchain.
 
-For more information on FIO, visit the [FIO website](https://fio.foundation).
+For more information on FIO, visit the [FIO website](https://fio.net).
 
-To explore the FIO Chain, API, and SDKs, check out the [FIO Protocol Developer Hub](https://developers.fioprotocol.io).
+To explore the FIO Chain, API, and SDKs, check out the [FIO Protocol Developer Hub](https://dev.fio.net/).
 
-## Installation
+# Installation
 
 To install the FIO SDK Lite, run:
 
@@ -14,229 +14,182 @@ To install the FIO SDK Lite, run:
 npm install @fioprotocol/fio-sdk-lite
 ```
 
-## Type Documentation
+# Type Documentation
 
 Full type documentation is available [here](https://fioprotocol.github.io/fio.sdk-lite/)
 
-## Usage
+# Usage
 
 Warning:  In some transaction parameters, there is an `actor` parameter. You don't need to pass it because it is derived from the public key, which is in turn derived from the private key used to sign the transaction.
 
-### Sign Transaction
+## Sign Transaction
 
 The following example demonstrates how to sign FIO blockchain transactions. It supports signing multiple transactions at once.
 
-```
-import { signTransaction } from '@fioprotocol/fio-sdk-lite';
+```typescript
+import { signTransaction } from 'fio-sdk-lite';
 
-const apiUrl = 'https://testnet.fioprotocol.io'; (should be without traling slash)
-const params = {
-  apiUrl,
-  actionParams: [
-    {
-      action: 'regaddress',
-      account: 'fio.address',
-      data: {
-        fio_address: 'fio-sdk-handle-test@regtest',
-        owner_fio_public_key: 'FIO7MYkz3serGGGanVPnPPupE1xSm1t7t8mWJ3H7KEd2vS2ZZbXBF',
-        tpid: 'dashboard@fiouat',
-        max_fee: 1500000000000,
-      },
-    },
-  ],
-  privateKey: '5JTmqev7ZsryGGkN6z4FRzd4ELQJLNZuhtQhobVVsJsBHnXxFCw',
-};
+async function main() {
+    // URL of FIO Chain API node, see: https://bpmonitor.fio.net/nodes
+    const apiUrl = 'https://test.fio.eosusa.io'; // No trailing slashes
 
-const signedTransactions = await signTransaction(params);
-const signedTransactionsResult = JSON.parse(signedTransactions);
+    // Transaction data, see https://dev.fio.net/reference/fio-chain-actions-api
+    // actor is omitted as it will be inserted by the SDK.
+    const params = {
+        apiUrl,
+        actionParams: [
+            {
+                action: 'regaddress',
+                account: 'fio.address',
+                data: {
+                    fio_address: 'test100004@regtest',
+                    owner_fio_public_key: '',
+                    tpid: '',
+                    max_fee: 1500000000000, // Obtain from https://dev.fio.net/reference/get_fee
+                },
+            },
+        ],
+        privateKey: '5JSTL6nnXztYTD1buYfYSqJkNZTBdS9MDZf5nZsFW7gZd1pxZXo',
+        // Get one for testing at: http://monitor.testnet.fioprotocol.io:3000/#createKey
+        // And add tokens from faucet at: http://monitor.testnet.fioprotocol.io:3000/#faucet
+    };
 
-console.log(signedTransactionsResult);
-// Example output:
-// {
-//   successed: [
-//     {
-//       signatures: ['SIG_K1_...'],
-//       compression: 0,
-//       packed_context_free_data: '',
-//       packed_trx: '96e2186776489adaea1b000000000...',
-//     }
-//   ],
-//   failed: [] // Failed transactions, if any, will be listed here.
-// }
+    try {
+        const signedTransactions = await signTransaction(params);
+        const signedTransactionsResult = JSON.parse(signedTransactions);
 
-//After signing, you must broadcast the transaction to the FIO server. This is an example:
+        const pushTransactionResult = async (signedTransactionsResult: any) => {
+            const pushResult = await fetch(
+                apiUrl+'/v1/chain/push_transaction',
+                {
+                    body: JSON.stringify(signedTransactionsResult),
+                    method: 'POST',
+                }
+            );
 
-const pushTransactionResult = async (signedTxn) => {
-  const pushResult = await fetch(
-    'https://testnet.fioprotocol.io/v1/chain/push_transaction',
-    {
-      body: JSON.stringify(signedTxn),
-      method: 'POST',
+            if ([400, 403, 500].includes(pushResult.status)) {
+                const jsonResult = await pushResult.json();
+                const errorMessage = jsonResult.message || 'Something went wrong';
+
+                if (jsonResult.fields) {
+                    const fieldErrors = jsonResult.fields.map(field => ({
+                        name: field.name,
+                        value: field.value,
+                        error: field.error,
+                    }));
+                    throw new Error(`${errorMessage}: ${JSON.stringify(fieldErrors)}`);
+                } else if (jsonResult.error && jsonResult.error.what) {
+                    throw new Error(jsonResult.error.what);
+                } else {
+                    throw new Error(errorMessage);
+                }
+            }
+
+            return await pushResult.json();
+        };
+        const results = await Promise.allSettled(
+            signedTransactionsResult.successed.map(pushTransactionResult)
+        );
+        console.log(results);
+        const processedData = results[0].status === 'fulfilled' ? results[0].value.processed : null;
+        if (processedData) {
+            const response = JSON.parse(processedData.action_traces[0].receipt.response);
+            console.log('Processed Data Response:', JSON.stringify(response, null, 2));
+        }
+    } catch (error) {
+        console.error("Error:", error);
     }
-  );
+}
 
-  if ([400, 403, 500].includes(pushResult.status)) {
-    const jsonResult = await pushResult.json();
-    const errorMessage = jsonResult.message || 'Something went wrong';
-
-    if (jsonResult.fields) {
-      const fieldErrors = jsonResult.fields.map(field => ({
-        name: field.name,
-        value: field.value,
-        error: field.error,
-      }));
-
-      throw new Error(`${errorMessage}: ${JSON.stringify(fieldErrors)}`);
-    } else if (jsonResult.error && jsonResult.error.what) {
-      throw new Error(jsonResult.error.what);
-    } else {
-      throw new Error(errorMessage);
-    }
-  }
-
-  return await pushResult.json();
-};
-
-const results = await Promise.allSettled(
-  signedTxns.successed.map(pushTransactionResult)
-);
-
-// Handle fulfilled results
-
+main();
 ```
 
-### Decrypt Content
+## Decrypt Content
 
 Use this function to decrypt content in FIO Requests or FIO Data.
 
-```
-import { decryptContent } from '@fioprotocol/fio-sdk-lite';
+```typescript
+import { decryptContent } from 'fio-sdk-lite';
 
-const getFioReqestParams = {
-  fio_public_key: "FIO7MYkz3serGGGanVPnPPupE1xSm1t7t8mWJ3H7KEd2vS2ZZbXBF",
-  limit: 100,
-  offset: 0,
-};
+async function main() {
+    // URL of FIO Chain API node, see: https://bpmonitor.fio.net/nodes
+    const apiUrl = 'https://test.fio.eosusa.io'; // No trailing slashes
+    const params = {
+        fio_public_key: "FIO7MYkz3serGGGanVPnPPupE1xSm1t7t8mWJ3H7KEd2vS2ZZbXBF",
+        limit: 1,
+        offset: 0,
+    };
 
-const sentFioRequests = await fetch(
-  'https://testnet.fioprotocol.io/v1/chain/get_sent_fio_requests',
-  {
-    body: JSON.stringify(getFioReqestParams),
-    method: 'POST',
-  },
-);
-//
-//{
-//    "requests": [
-//        {
-//            "fio_request_id": 25643,
-//            "payer_fio_address": "fio-sdk-handle-2@regtest",
-//            "payee_fio_address": "fio-sdk-handle@regtest",
-//            "payer_fio_public_key": "FIO8hnBb7aUDFs6cvCT2TCRQs9vV9jxJbKLCe5q23Zb8Wr36DxsUr",
-//           "payee_fio_public_key": "FIO7MYkz3serGGGanVPnPPupE1xSm1t7t8mWJ3H7KEd2vS2ZZbXBF",
-//            "content": "FoyXu0rQyBSbkvI3gJ2FIz6PBylbhxetqTMQpa3BEcogvnFg1EpWEZY+QyQEA2Ckv1/m2bbs+SfCiZXjieFAF9xfUiCQ+MK66Ky1ctn1JNx8BmDFI+1Wnyn2uoxwP55fZK0MUBw0hKTu7WnUHvDWPgFHsNdIyDVlB0lb174U37Hm1c8BS/KMpqjpN/E2xN9D",
-//            "time_stamp": "2024-10-13T09:19:11",
-//            "status": "requested"
-//        },
-//        {
-//            "fio_request_id": 25644,
-//            "payer_fio_address": "fio-sdk-handle-2@regtest",
-//            "payee_fio_address": "fio-sdk-handle@regtest",
-//            "payer_fio_public_key": "FIO8hnBb7aUDFs6cvCT2TCRQs9vV9jxJbKLCe5q23Zb8Wr36DxsUr",
-//            "payee_fio_public_key": "FIO7MYkz3serGGGanVPnPPupE1xSm1t7t8mWJ3H7KEd2vS2ZZbXBF",
-//            "content": "o/yFWiuvN7bbRk70e/Jw3GSUwN3xM2pPIHneFYW+pfhUG0xTHAIC+XYDonTbNXACxhotLYzcbal4vBEy8bCa9YznvRT9MoETKX60vYrBOA/wljnlirHhRgvKT3EaVY38qxk9qeu/ZA25xSQj9yblB6YkmVEv0yUailYwS2VIkM8=",
-//            "time_stamp": "2024-10-13T10:56:03",
-//            "status": "requested"
-//        }
-//    ],
-//    "more": 0
-//}
+    try {
+        const response = await fetch(apiUrl+'/v1/chain/get_sent_fio_requests',
+            {
+                body: JSON.stringify(params),
+                method: 'POST',
+            },
+        );
+        const sentFioRequests = await response.json();
+        const fioRequestToDecrypt = sentFioRequests.requests[0];
+        const decryptedContent = decryptContent({
+            content: fioRequestToDecrypt.content,
+            encryptionPublicKey: fioRequestToDecrypt.payer_fio_public_key,
+            fioContentType: 'new_funds_content', // new_funds_content - FIO Request, or 'record_obt_data_content' - FIO Data
+            privateKey: '5JTmqev7ZsryGGkN6z4FRzd4ELQJLNZuhtQhobVVsJsBHnXxFCw',
+            // Get one for testing at: http://monitor.testnet.fioprotocol.io:3000/#createKey
+            // And add tokens from faucet at: http://monitor.testnet.fioprotocol.io:3000/#faucet
+        });
+        console.log(decryptedContent);
+    } catch (error) {
+        console.error("Error:", error);
+    }
+}
 
-// Will take as an example on of the requests.
-
-const fioRequestToDecrypt = sentFioRequests.requests[0];
-
-const decryptedContent = decryptContent({
-  content: fioRequestToDecrypt.content,
-  encryptionPublicKey: fioRequestToDecrypt.payer_fio_public_key,
-  fioContentType: 'new_funds_content', // or 'record_obt_data_content' for FIO Data
-  privateKey: '5JTmqev7ZsryGGkN6z4FRzd4ELQJLNZuhtQhobVVsJsBHnXxFCw', // FIO Private key
-});
-
-console.log(decryptedContent);
-//
-//  {
-//    payee_public_address: 'FIO7MYkz3serGGGanVPnPPupE1xSm1t7t8mWJ3H7KEd2vS2ZZbXBF',
-//    amount: '12',
-//    chain_code: 'FIO',
-//    token_code: 'FIO',
-//    memo: 'Memo phrase',
-//    hash: null,
-//    offline_url: null
-//  }
+main();
 ```
 
-### Sign nonce
+## Get Public Key from Private key and sign/verify nonce
 
-Sign a nonce using the FIO Private key.
-
-```
-import { signNonce } from '@fioprotocol/fio-sdk-lite';
+```typescript
+import { signNonce, getPublicKey, verifySignature} from 'fio-sdk-lite';
 import { createHmac, randomBytes } from 'crypto-browserify';
 
-const secret = 'nvjrf43dwmcsl';
+async function main() {
+    const privKey = '5JSTL6nnXztYTD1buYfYSqJkNZTBdS9MDZf5nZsFW7gZd1pxZXo';
+    // Get one for testing at: http://monitor.testnet.fioprotocol.io:3000/#createKey
+    // And add tokens from faucet at: http://monitor.testnet.fioprotocol.io:3000/#faucet
+    const secret = 'nvjrf43dwmcsl';
 
-const stringToHash = randomBytes(8).toString('hex');
+    try {
+        // Get public key from Private key
+        const publicKey = getPublicKey({ privateKey: privKey });
+        console.log(publicKey);
 
-const nonce = createHmac('sha256', secret)
-  .update(stringToHash)
-  .digest('hex');
-// Something like '6d2242964fbf8a611c26b5cdabec56ff318cf75484fefa4ceebc2a1bc9ea4070'
+        // Generate nonce
+        const stringToHash = randomBytes(8).toString('hex');
+        const nonce = createHmac('sha256', secret)
+            .update(stringToHash)
+            .digest('hex');
 
-const singedNonce = signNonce({ nonce, privateKey });
+        // Sign nonce
+        const singedNonce = signNonce({ nonce, privateKey: privKey });
+        console.log(singedNonce);
 
-console.log(singedNonce);
-// 'SIG_K1_...'
+        // Verify nonce
+        const isSignatureVerified = verifySignature({
+            singedNonce,
+            nonce,
+            encoding: 'utf8', // Default encoding is 'utf8'
+            publicKey,
+        });
+        console.log(isSignatureVerified);
+    } catch (error) {
+        console.error("Error:", error);
+    }
+}
 
+main();
 ```
 
-### Verify Signature
-
-Verify the signature of a nonce. This can be used to validate the signature with the public and private key pair.
-
-```
-import { signNonce } from '@fioprotocol/fio-sdk-lite';
-
-const signature = 'SIG_K1_...' // Signature from the signed nonce
-const data = '6d2242964fbf8a611c26b5cdabec56ff318cf75484fefa4ceebc2a1bc9ea4070'; // Saved nonce
-const publicKey = 'FIO7MYkz3serGGGanVPnPPupE1xSm1t7t8mWJ3H7KEd2vS2ZZbXBF';
-
-const isSignatureVerified = ({
-  signature,
-  data,
-  encoding, // Default encoding is 'utf8'
-  publicKey,
-});
-
-console.log(isSignatureVerified);
-// Output: true or false
-```
-
-### Get Public Key
-Retrieve the associated FIO public key from a private key.
-
-```
-import { getPublicKey } from '@fioprotocol/fio-sdk-lite';
-
-const privateKey = '5JTmqev7ZsryGGkN6z4FRzd4ELQJLNZuhtQhobVVsJsBHnXxFCw';
-
-const publicKey = getPublicKey({ privateKey });
-
-console.log(publicKey);
-// 'FIO7MYkz3serGGGanVPnPPupE1xSm1t7t8mWJ3H7KEd2vS2ZZbXBF'
-```
-
-## Testing
+# Testing
 
 Run tests using:
 
@@ -244,34 +197,20 @@ Run tests using:
 npm run test
 ```
 
-## Environment
+# Environment
 
 Requires Node.js version 20 and higher.
 
-## Local Instalation
+# Local Instalation
 
-Run 
+## Build and run 
 ```bash
 npm install
-```
-
-## Build
-
-To build the project, run:
-```bash
 npm run build
 ```
 
 ## Build docs
-
 To build docs of the project, run:
 ```bash
 npm run docs
 ```
-
-## New version rollout to npm
-1. Run tests
-2. Update version in package.json
-3. Build docs
-4. Make build
-5. Publish to npm
