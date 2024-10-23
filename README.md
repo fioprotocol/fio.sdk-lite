@@ -119,7 +119,7 @@ const getFioReqestParams = {
 };
 
 const sentFioRequests = await fetch(
-  https://testnet.fioprotocol.io/v1/chain/get_sent_fio_requests,
+  'https://testnet.fioprotocol.io/v1/chain/get_sent_fio_requests',
   {
     body: JSON.stringify(getFioReqestParams),
     method: 'POST',
@@ -268,3 +268,10 @@ To build docs of the project, run:
 ```bash
 npm run docs
 ```
+
+## New version rollout to npm
+1. Run tests
+2. Update version in package.json
+3. Build docs
+4. Make build
+5. Publish to npm
