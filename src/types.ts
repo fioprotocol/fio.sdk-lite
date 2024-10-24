@@ -49,21 +49,16 @@ export type DataParams = {
 };
 
 export type RequestParamsItem = {
-  actor?: string;
   account: string;
   action: string;
   authActor?: string;
   contentType?: string;
-  content?: string;
   data: DataParams;
   dataActor?: string;
-  derivationIndex?: number;
-  encryptionPublicKey?: string;
   id?: string;
   payeeFioPublicKey?: string;
   payerFioPublicKey?: string;
   timeoutOffset?: string;
-  nonce?: string;
 };
 
 export type RequestParamsTranasction = {

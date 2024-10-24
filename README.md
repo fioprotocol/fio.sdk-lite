@@ -26,8 +26,29 @@ Warning:  In some transaction parameters, there is an `actor` parameter. You don
 
 The following example demonstrates how to sign FIO blockchain transactions. It supports signing multiple transactions at once.
 
+Action parameters `actionParams`:
+- `action` - **Required**. Action name of the specific action on FIO Chain, e.g. for registering FIO Handle: regaddress. For more details see [FIO Chain Action API](https://dev.fio.net/reference/fio-chain-actions-api).
+
+- `account`- **Required**. Account name for contract matching the specific action on FIO Chain, e.g. for registering FIO Handle: fio.address. For more details see [FIO Chain Action API](https://dev.fio.net/reference/fio-chain-actions-api).
+
+- `authActor` - **Not required**. Represents FIO Account which will execute the action. In most cases this is the [hashed FIO Public Key](https://dev.fio.net/docs/fio-account-name-hash-function). Is used if another actor will be used for authorization.
+
+- `contentType` - **Required** for `newfundsreq` (FIO Request) and `recordobt` (FIO Data) actions. 'new_funds_content' - FIO Request, or 'record_obt_data_content' - FIO Data.
+
+- `data` - **Required**. Body parameters for signing a transaction. See https://dev.fio.net/reference/fio-chain-actions-api
+
+- `dataActor` - **Not required**. Represents FIO Account which will execute the action. In most cases this is the hashed FIO Public Key. Is used if another account will execute an action.
+
+- `id` - **Not required**. Transaction ID that you want to sign. This is helpful for error handling.
+
+- `payeeFioPublicKey` - **Required** when action is: `recordobt`. FIO Public key of the wallet who will receive an OBT data record. This is used for [encryption](https://dev.fio.net/docs/encryption-in-fio-request-and-fio-data).
+
+- `payerFioPublicKey` - **Required** when action is: `newfundsreq`. FIO Public key of the wallet who will receive a FIO Request. This is used for [encryption](https://dev.fio.net/docs/encryption-in-fio-request-and-fio-data).
+
+- `timeoutOffset` - **Not required**. Time offset for transaction expiration in milliseconds. By default, this is set to 60000 milliseconds, equivalent to 1 minute.
+
 ```typescript
-import { signTransaction } from 'fio-sdk-lite';
+import { signTransaction } from '@fioprotocol/fio-sdk-lite';
 
 async function main() {
     // URL of FIO Chain API node, see: https://bpmonitor.fio.net/nodes
@@ -42,7 +63,7 @@ async function main() {
                 action: 'regaddress',
                 account: 'fio.address',
                 data: {
-                    fio_address: 'test100004@regtest',
+                    fio_address: `testing-fio-handle-${Date.now()}@regtest`,
                     owner_fio_public_key: '',
                     tpid: '',
                     max_fee: 1500000000000, // Obtain from https://dev.fio.net/reference/get_fee
@@ -108,8 +129,19 @@ main();
 
 Use this function to decrypt content in FIO Requests or FIO Data.
 
+Parameters:
+- `content` - **Required**. Encrypted blob. The content field from [FIO Request](https://dev.fio.net/reference/get_pending_fio_requests) or [FIO Data](https://dev.fio.net/reference/get_obt_data).
+
+- `encryptionPublicKey` - **Required**. FIO Public key of the other wallet that was used for encryption. This is returned by [/get_pending_fio_requests](https://dev.fio.net/reference/get_pending_fio_requests) and [/get_obt_data](https://dev.fio.net/reference/get_obt_data). This is used for [decryption](https://dev.fio.net/docs/encryption-in-fio-request-and-fio-data).
+
+- `fioContentType` - **Required**. Set as follows:
+`newfundsreq`: new_funds_content
+`recordobt`: record_obt_data_content
+
+- `privateKey` - **Required**. FIO Private key.
+
 ```typescript
-import { decryptContent } from 'fio-sdk-lite';
+import { decryptContent } from '@fioprotocol/fio-sdk-lite';
 
 async function main() {
     // URL of FIO Chain API node, see: https://bpmonitor.fio.net/nodes
@@ -148,42 +180,61 @@ main();
 
 ## Get Public Key from Private key and sign/verify nonce
 
+Parameters `getPublicKey`:
+
+- `privateKey` - **Required**. FIO Private key.
+
+Parameters `signNonce`:
+
+- `nonce` - **Required**. Nonce to sign.
+
+- `privateKey` - **Required**. FIO Private key.
+
+Parameters `verifySignature`:
+
+- `signature` - **Required**. Signed signature string.
+
+- `data` - **Required**. Is a nonce value.
+
+- `publicKey` - **Required**. FIO Public key.
+
+- `encoding` - **Not required**. Is one of Buffer Encoding names: "ascii", "utf8", "utf-8", "utf16le", "utf-16le", "ucs2", "ucs-2", "base64", "base64url", "latin1", "binary", "hex". By default is automatically set as `utf8`.
+
 ```typescript
-import { signNonce, getPublicKey, verifySignature} from 'fio-sdk-lite';
+import { signNonce, getPublicKey, verifySignature} from '@fioprotocol/fio-sdk-lite';
 import { createHmac, randomBytes } from 'crypto-browserify';
 
 async function main() {
-    const privKey = '5JSTL6nnXztYTD1buYfYSqJkNZTBdS9MDZf5nZsFW7gZd1pxZXo';
-    // Get one for testing at: http://monitor.testnet.fioprotocol.io:3000/#createKey
-    // And add tokens from faucet at: http://monitor.testnet.fioprotocol.io:3000/#faucet
-    const secret = 'nvjrf43dwmcsl';
+  const privKey = '5JSTL6nnXztYTD1buYfYSqJkNZTBdS9MDZf5nZsFW7gZd1pxZXo';
+  // Get one for testing at: http://monitor.testnet.fioprotocol.io:3000/#createKey
+  // And add tokens from faucet at: http://monitor.testnet.fioprotocol.io:3000/#faucet
+  const secret = 'nvjrf43dwmcsl';
 
-    try {
-        // Get public key from Private key
-        const publicKey = getPublicKey({ privateKey: privKey });
-        console.log(publicKey);
+  try {
+    // Get public key from Private key
+    const publicKey = getPublicKey({ privateKey: privKey });
+    console.log('Public key', publicKey);
 
-        // Generate nonce
-        const stringToHash = randomBytes(8).toString('hex');
-        const nonce = createHmac('sha256', secret)
-            .update(stringToHash)
-            .digest('hex');
+    // Generate nonce
+    const stringToHash = randomBytes(8).toString('hex');
+    const nonce = createHmac('sha256', secret)
+      .update(stringToHash)
+      .digest('hex');
 
-        // Sign nonce
-        const singedNonce = signNonce({ nonce, privateKey: privKey });
-        console.log(singedNonce);
+    // Sign nonce
+    const singedNonce = signNonce({ nonce, privateKey: privKey });
+    console.log('Signed nonce', singedNonce);
 
-        // Verify nonce
-        const isSignatureVerified = verifySignature({
-            singedNonce,
-            nonce,
-            encoding: 'utf8', // Default encoding is 'utf8'
-            publicKey,
-        });
-        console.log(isSignatureVerified);
-    } catch (error) {
-        console.error("Error:", error);
-    }
+    // Verify nonce
+    const isSignatureVerified = verifySignature({
+      signature: singedNonce,
+      data: nonce,
+      publicKey,
+    });
+    console.log(isSignatureVerified);
+  } catch (error) {
+    console.error('Error:', error);
+  }
 }
 
 main();
