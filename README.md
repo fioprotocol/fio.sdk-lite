@@ -125,6 +125,51 @@ async function main() {
 main();
 ```
 
+## Encrypt Content
+
+Use this function to encrypt content for [FIO Request](https://dev.fio.net/reference/new_funds_request) or [FIO Data](https://dev.fio.net/reference/record_obt_data)..
+
+Parameters:
+- `content` - **Required**. Content object to encrypt. Must match the schema for the specified `fioContentType`.
+
+- `encryptionPublicKey` - **Required**. FIO Public key of the recipient wallet that will be used for encryption. This is used for [encryption](https://dev.fio.net/docs/encryption-in-fio-request-and-fio-data).
+
+- `fioContentType` - **Required**. Set as follows:
+    - `newfundsreq`: new_funds_content
+    - `recordobt`: record_obt_data_content
+
+- `privateKey` - **Required**. FIO Private key of the sender.
+
+```typescript
+import { encryptContent } from '@fioprotocol/fio-sdk-lite';
+
+async function main() {
+    const content = {
+        payee_public_address: 'purse@alice',
+        amount: '1',
+        chain_code: 'FIO',
+        token_code: 'FIO',
+        memo: 'Payment for services',
+        hash: '',
+        offline_url: ''
+    };
+
+    try {
+        const encryptedContent = encryptContent({
+            content,
+            encryptionPublicKey: 'FIO7MYkz3serGGGanVPnPPupE1xSm7t7t8mWJ3H7KEd2vS2ZZbXBF',
+            fioContentType: 'new_funds_content', // new_funds_content - FIO Request, or 'record_obt_data_content' - FIO Data
+            privateKey: '5JTmqev7ZsryGGkN6z4FRzd4ELQJLNZuhtQhobVVsJsBHnXxFCw'
+        });
+        console.log(encryptedContent);
+    } catch (error) {
+        console.error("Error:", error);
+    }
+}
+
+main();
+```
+
 ## Decrypt Content
 
 Use this function to decrypt content in FIO Requests or FIO Data.
@@ -135,8 +180,8 @@ Parameters:
 - `encryptionPublicKey` - **Required**. FIO Public key of the other wallet that was used for encryption. This is returned by [/get_pending_fio_requests](https://dev.fio.net/reference/get_pending_fio_requests) and [/get_obt_data](https://dev.fio.net/reference/get_obt_data). This is used for [decryption](https://dev.fio.net/docs/encryption-in-fio-request-and-fio-data).
 
 - `fioContentType` - **Required**. Set as follows:
-`newfundsreq`: new_funds_content
-`recordobt`: record_obt_data_content
+    - `newfundsreq`: new_funds_content
+    - `recordobt`: record_obt_data_content
 
 - `privateKey` - **Required**. FIO Private key.
 

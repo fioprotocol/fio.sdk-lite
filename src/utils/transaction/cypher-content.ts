@@ -1,21 +1,21 @@
 import { DataParams } from '../../types';
 import { getCipherContent } from '../encrypt/encrypt-fio';
 
-export const cypherContent = ({
+export const encryptContent = ({
   content,
-  contentType,
   encryptionPublicKey,
+  fioContentType,
   privateKey,
 }: {
   content: DataParams['content'];
-  contentType: string;
   encryptionPublicKey: string;
+  fioContentType: string;
   privateKey: string;
 }): string => {
   if (!content) {
     throw new Error('Missing content parameter');
   }
-  if (!contentType) {
+  if (!fioContentType) {
     throw new Error('Missing FIO content type');
   }
   if (!encryptionPublicKey) {
@@ -24,7 +24,7 @@ export const cypherContent = ({
 
   const cypheredContent = getCipherContent({
     content,
-    fioContentType: contentType,
+    fioContentType,
     privateKey,
     encryptionPublicKey,
   });
