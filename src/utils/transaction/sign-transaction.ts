@@ -11,7 +11,7 @@ import { getPublicKey } from '../getKeys';
 import { serializeAction } from '../serialize/serialize-action';
 import { serializeTransaction } from '../serialize/serialize-transaction';
 import { createTransaction } from './create-transaction';
-import { cypherContent } from './cypher-content';
+import { encryptContent } from './cypher-content';
 
 export const signTransaction = async (
   params: RequestParamsTranasction
@@ -75,9 +75,9 @@ export const signTransaction = async (
             data?.content?.payee_public_address);
 
         if (encryptionPublicKey) {
-          const cypheredContent = cypherContent({
+          const cypheredContent = encryptContent({
             content: data.content,
-            contentType,
+            fioContentType: contentType,
             encryptionPublicKey,
             privateKey,
           });
