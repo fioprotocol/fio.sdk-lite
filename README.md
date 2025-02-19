@@ -70,7 +70,7 @@ async function main() {
                 },
             },
         ],
-        privateKey: '5JSTL6nnXztYTD1buYfYSqJkNZTBdS9MDZf5nZsFW7gZd1pxZXo',
+        privateKey: FIO_PRIVATE_KEY,
         // Get one for testing at: http://monitor.testnet.fioprotocol.io:3000/#createKey
         // And add tokens from faucet at: http://monitor.testnet.fioprotocol.io:3000/#faucet
     };
@@ -125,6 +125,53 @@ async function main() {
 main();
 ```
 
+## Encrypt Content
+
+Use this function to encrypt content for [FIO Request](https://dev.fio.net/reference/new_funds_request) or [FIO Data](https://dev.fio.net/reference/record_obt_data)..
+
+Parameters:
+- `content` - **Required**. Content object to encrypt. Must match the schema for the specified `fioContentType`.
+
+- `encryptionPublicKey` - **Required**. FIO Public key of the recipient wallet that will be used for encryption. This is used for [encryption](https://dev.fio.net/docs/encryption-in-fio-request-and-fio-data).
+
+- `fioContentType` - **Required**. Set as follows:
+    - `newfundsreq`: new_funds_content
+    - `recordobt`: record_obt_data_content
+
+- `privateKey` - **Required**. FIO Private key of the sender.
+
+```typescript
+import { encryptContent } from '@fioprotocol/fio-sdk-lite';
+
+async function main() {
+    const content = {
+        payee_public_address: 'purse@alice',
+        amount: '1',
+        chain_code: 'FIO',
+        token_code: 'FIO',
+        memo: 'Payment for services',
+        hash: '',
+        offline_url: ''
+    };
+
+    try {
+        const encryptedContent = encryptContent({
+            content,
+            encryptionPublicKey: FIO_PUBLIC_KEY_RECIPIENT, // FIO Public key of the recipient wallet that will be used for encryption
+            fioContentType: 'new_funds_content', // new_funds_content - FIO Request, or 'record_obt_data_content' - FIO Data
+            privateKey: FIO_PRIVATE_KEY_SENDER // FIO Private key of the sender
+            // Get one for testing at: http://monitor.testnet.fioprotocol.io:3000/#createKey
+            // And add tokens from faucet at: http://monitor.testnet.fioprotocol.io:3000/#faucet
+        });
+        console.log(encryptedContent);
+    } catch (error) {
+        console.error("Error:", error);
+    }
+}
+
+main();
+```
+
 ## Decrypt Content
 
 Use this function to decrypt content in FIO Requests or FIO Data.
@@ -135,8 +182,8 @@ Parameters:
 - `encryptionPublicKey` - **Required**. FIO Public key of the other wallet that was used for encryption. This is returned by [/get_pending_fio_requests](https://dev.fio.net/reference/get_pending_fio_requests) and [/get_obt_data](https://dev.fio.net/reference/get_obt_data). This is used for [decryption](https://dev.fio.net/docs/encryption-in-fio-request-and-fio-data).
 
 - `fioContentType` - **Required**. Set as follows:
-`newfundsreq`: new_funds_content
-`recordobt`: record_obt_data_content
+    - `newfundsreq`: new_funds_content
+    - `recordobt`: record_obt_data_content
 
 - `privateKey` - **Required**. FIO Private key.
 
@@ -147,7 +194,9 @@ async function main() {
     // URL of FIO Chain API node, see: https://bpmonitor.fio.net/nodes
     const apiUrl = 'https://test.fio.eosusa.io'; // No trailing slashes
     const params = {
-        fio_public_key: "FIO7MYkz3serGGGanVPnPPupE1xSm1t7t8mWJ3H7KEd2vS2ZZbXBF",
+        fio_public_key: FIO_PUBLIC_KEY_SENDER, // FIO Public key of the sender wallet that will be used for encryption.
+        // You need to have pending FIO Request from the sender to the recipient.
+        // You can make it using [/new_funds_request](https://dev.fio.net/reference/new_funds_request) action.
         limit: 1,
         offset: 0,
     };
@@ -161,15 +210,25 @@ async function main() {
         );
         const sentFioRequests = await response.json();
         const fioRequestToDecrypt = sentFioRequests.requests[0];
-        const decryptedContent = decryptContent({
+        const decryptedContentSender = decryptContent({
             content: fioRequestToDecrypt.content,
             encryptionPublicKey: fioRequestToDecrypt.payer_fio_public_key,
             fioContentType: 'new_funds_content', // new_funds_content - FIO Request, or 'record_obt_data_content' - FIO Data
-            privateKey: '5JTmqev7ZsryGGkN6z4FRzd4ELQJLNZuhtQhobVVsJsBHnXxFCw',
+            privateKey: FIO_PRIVATE_KEY_SENDER, // FIO Private key of the sender
             // Get one for testing at: http://monitor.testnet.fioprotocol.io:3000/#createKey
             // And add tokens from faucet at: http://monitor.testnet.fioprotocol.io:3000/#faucet
         });
-        console.log(decryptedContent);
+
+        const decryptedContentRecipient = decryptContent({
+            content: fioRequestToDecrypt.content,
+            encryptionPublicKey: fioRequestToDecrypt.payee_fio_public_key,
+            fioContentType: 'new_funds_content', // new_funds_content - FIO Request, or 'record_obt_data_content' - FIO Data
+            privateKey: FIO_PRIVATE_KEY_RECIPIENT, // FIO Private key of the recipient
+        });
+    
+        // Decrypted content should be the same for both sender and recipient
+        console.log(decryptedContentSender);
+        console.log(decryptedContentRecipient);
     } catch (error) {
         console.error("Error:", error);
     }
@@ -205,7 +264,7 @@ import { signNonce, getPublicKey, verifySignature} from '@fioprotocol/fio-sdk-li
 import { createHmac, randomBytes } from 'crypto-browserify';
 
 async function main() {
-  const privKey = '5JSTL6nnXztYTD1buYfYSqJkNZTBdS9MDZf5nZsFW7gZd1pxZXo';
+  const privKey = FIO_PRIVATE_KEY;
   // Get one for testing at: http://monitor.testnet.fioprotocol.io:3000/#createKey
   // And add tokens from faucet at: http://monitor.testnet.fioprotocol.io:3000/#faucet
   const secret = 'nvjrf43dwmcsl';
@@ -242,6 +301,7 @@ main();
 
 # Testing
 
+To run tests, you need to have 2 FIO wallets with FIO Handles already created. Set it in `.env` file using `.env.example` as a template.
 Run tests using:
 
 ```bash
