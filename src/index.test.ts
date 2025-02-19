@@ -1,3 +1,5 @@
+import 'dotenv/config';
+
 import {
   decryptContent,
   encryptContent,
@@ -11,15 +13,15 @@ const MEMO_PHRASE = 'Hello FIO SDK Lite';
 const MEMO_PHRASE_ENCRYPTED = 'Hello FIO SDK Lite Encrypted';
 
 const wallet1 = {
-  privateKey: '5JTmqev7ZsryGGkN6z4FRzd4ELQJLNZuhtQhobVVsJsBHnXxFCw',
-  publicKey: 'FIO7MYkz3serGGGanVPnPPupE1xSm1t7t8mWJ3H7KEd2vS2ZZbXBF',
-  fioHandle: 'fio-sdk-handle@regtest',
+  privateKey: process.env.WALLET1_PRIVATE_KEY!,
+  publicKey: getPublicKey({ privateKey: process.env.WALLET1_PRIVATE_KEY! }),
+  fioHandle: process.env.WALLET1_FIO_HANDLE!,
 };
 
 const wallet2 = {
-  privateKey: '5JpWuB5YbjQBmoBcxbzTTuY9h2NNQNVD5Ct5yKU1d5QCowt1G8X',
-  publicKey: 'FIO8hnBb7aUDFs6cvCT2TCRQs9vV9jxJbKLCe5q23Zb8Wr36DxsUr',
-  fioHandle: 'fio-sdk-handle-2@regtest',
+  privateKey: process.env.WALLET2_PRIVATE_KEY!,
+  publicKey: getPublicKey({ privateKey: process.env.WALLET2_PRIVATE_KEY! }),
+  fioHandle: process.env.WALLET2_FIO_HANDLE!,
 };
 
 const encryptContentParams = {
@@ -70,9 +72,19 @@ const transactionActionParams = {
   privateKey: wallet1.privateKey,
 };
 
+/**
+ * Decrypt Content Parameters
+ *
+ * These parameters are used to decrypt content created by the main FIO SDK library.
+ *
+ * To create a new FIO request:
+ * 1. Visit https://dev.fio.net/reference/new_funds_request
+ * 2. Follow the API documentation instructions
+ * 3. Use matching FIO keys for sender and recipient wallets in .env file
+ *    - This ensures content encryption/decryption works correctly across environments
+ */
 const decryptContentParams = {
-  content:
-    'FoyXu0rQyBSbkvI3gJ2FIz6PBylbhxetqTMQpa3BEcogvnFg1EpWEZY+QyQEA2Ckv1/m2bbs+SfCiZXjieFAF9xfUiCQ+MK66Ky1ctn1JNx8BmDFI+1Wnyn2uoxwP55fZK0MUBw0hKTu7WnUHvDWPgFHsNdIyDVlB0lb174U37Hm1c8BS/KMpqjpN/E2xN9D',
+  content: process.env.ENCRYPTED_CONTENT_STRING!,
   encryptionPublicKey: wallet2.publicKey,
   fioContentType: 'new_funds_content',
   privateKey: wallet1.privateKey,
@@ -125,6 +137,10 @@ describe('Test methods', () => {
   });
 
   it('check decrypted content', async () => {
+    if (!decryptContentParams.content) {
+      throw new Error('ENCRYPTED_CONTENT_STRING is not set');
+    }
+
     const result = decryptContent(decryptContentParams);
 
     expect(result.memo).toEqual(MEMO_PHRASE);
@@ -147,6 +163,19 @@ describe('Test methods', () => {
     expect(decryptResult.memo).toEqual(encryptContentParams.content.memo);
     expect(decryptResult.amount).toEqual(encryptContentParams.content.amount);
     expect(decryptResult.payee_public_address).toEqual(wallet1.publicKey);
+    expect(decryptResult.payer_public_address).toEqual(wallet2.publicKey);
+    expect(decryptResult.chain_code).toEqual(
+      encryptContentParams.content.chain_code
+    );
+    expect(decryptResult.token_code).toEqual(
+      encryptContentParams.content.token_code
+    );
+    expect(decryptResult.status).toEqual(encryptContentParams.content.status);
+    expect(decryptResult.obt_id).toEqual(encryptContentParams.content.obt_id);
+    expect(decryptResult.hash).toEqual(encryptContentParams.content.hash);
+    expect(decryptResult.offline_url).toEqual(
+      encryptContentParams.content.offline_url
+    );
 
     const decryptResult2 = decryptContent({
       content: result,
@@ -158,5 +187,18 @@ describe('Test methods', () => {
     expect(decryptResult2.memo).toEqual(encryptContentParams.content.memo);
     expect(decryptResult2.amount).toEqual(encryptContentParams.content.amount);
     expect(decryptResult2.payee_public_address).toEqual(wallet1.publicKey);
+    expect(decryptResult2.payer_public_address).toEqual(wallet2.publicKey);
+    expect(decryptResult2.chain_code).toEqual(
+      encryptContentParams.content.chain_code
+    );
+    expect(decryptResult2.token_code).toEqual(
+      encryptContentParams.content.token_code
+    );
+    expect(decryptResult2.status).toEqual(encryptContentParams.content.status);
+    expect(decryptResult2.obt_id).toEqual(encryptContentParams.content.obt_id);
+    expect(decryptResult2.hash).toEqual(encryptContentParams.content.hash);
+    expect(decryptResult2.offline_url).toEqual(
+      encryptContentParams.content.offline_url
+    );
   });
 });
