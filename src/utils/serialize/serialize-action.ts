@@ -1,4 +1,5 @@
 import { Transaction, TransactionAction } from '../../types';
+import { getRawAbi } from '../chain/chain-get-raw-abis';
 import {
   SerialBuffer,
   arrayToHex,
@@ -20,18 +21,13 @@ export const serializeAction = async ({
   apiUrl: string;
   transaction: Transaction;
 }): Promise<TransactionAction | null> => {
-  const abiFioAddress = await (
-    await fetch(`${apiUrl}/v1/chain/get_abi`, {
-      body: `{"account_name": ${account}}`,
-      method: 'POST',
-    })
-  ).json();
+  const accountAbi = await getRawAbi({
+    account,
+    apiUrl,
+  });
 
-  // Get a Map of all the types from fio.address
-  const typesFioAddress = getTypesFromAbi(
-    createInitialTypes(),
-    abiFioAddress.abi
-  );
+  // Get a Map of all the types from account
+  const typesFioAddress = getTypesFromAbi(createInitialTypes(), accountAbi.abi);
 
   // Get the addaddress action type
   const fioAction = typesFioAddress.get(action);
