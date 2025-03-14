@@ -1,4 +1,5 @@
 import { Transaction, TransactionAction } from '../../types';
+import { getRawAbi } from '../chain/chain-get-raw-abis';
 import {
   SerialBuffer,
   createInitialTypes,
@@ -17,12 +18,10 @@ export const serializeTransaction = async ({
   serializedAction: TransactionAction | null;
   transaction: Transaction;
 }) => {
-  const abiMsig = await (
-    await fetch(`${apiUrl}/v1/chain/get_abi`, {
-      body: `{"account_name": "eosio.msig"}`,
-      method: 'POST',
-    })
-  ).json();
+  const abiMsig = await getRawAbi({
+    account: 'eosio.msig',
+    apiUrl,
+  });
 
   const typesTransaction = getTypesFromAbi(createInitialTypes(), abiMsig.abi);
 
