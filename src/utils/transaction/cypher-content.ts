@@ -1,4 +1,4 @@
-import { DataParams } from '../../types';
+import { Content } from '../../types';
 import { getCipherContent } from '../encrypt/encrypt-fio';
 
 export const encryptContent = ({
@@ -7,7 +7,7 @@ export const encryptContent = ({
   fioContentType,
   privateKey,
 }: {
-  content: DataParams['content'];
+  content: Content;
   encryptionPublicKey: string;
   fioContentType: string;
   privateKey: string;

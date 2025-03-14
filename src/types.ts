@@ -15,37 +15,13 @@ export type DecryptedContent = {
 
 export type Content = DecryptedContent | string;
 
+/**
+ * For more information about data params for specific actions, please refer to the FIO Action server documentation.
+ * https://dev.fio.net/reference/fio-chain-actions-api
+ */
 export type DataParams = {
-  amount?: string | number;
-  bundle_sets?: number;
-  chain_code?: string;
-  content?: Content;
-  fio_address?: string;
-  fio_domain?: string;
-  fio_request_id?: string;
-  is_public?: number;
-  max_fee: number;
-  max_oracle_fee?: string;
-  nfts?: {
-    chain_code: string;
-    contract_address: string;
-    token_id: string;
-    url?: string;
-    hash?: string;
-    metadata?: string;
-  }[];
-  new_owner_fio_public_key?: string;
-  owner_fio_public_key?: string;
-  payer_fio_address?: string;
-  payee_fio_address?: string;
-  payee_public_key?: string;
-  public_addresses?: {
-    chain_code: string;
-    token_code: string;
-    public_address: string;
-  }[];
-  public_address?: string;
-  tpid: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
 };
 
 export type RequestParamsItem = {
@@ -64,6 +40,7 @@ export type RequestParamsItem = {
 export type RequestParamsTranasction = {
   /**
    * The apiUrl is a FIO Action server URL e.g. mainnet - https://fio.blockpane.com;
+   *  Get the action server url from the FIO Action server list https://bpmonitor.fio.net/
    **/
   apiUrl: string;
   actionParams: Array<RequestParamsItem>;
