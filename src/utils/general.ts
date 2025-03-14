@@ -65,3 +65,7 @@ function stringFromUInt64T(temp: Long): string {
   }
   return result;
 }
+
+// Helper function to pause execution
+export const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));

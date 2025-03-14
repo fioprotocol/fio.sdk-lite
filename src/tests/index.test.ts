@@ -7,7 +7,8 @@ import { SignNonce } from './common/sign-nonce.spec';
 import { SignTransaction } from './common/sign-tranasction.spec';
 import { DecryptContentFromOtherEncryption } from './common/decrypt-content-from-other-encryption.spec';
 import { EncryptDecryptContent } from './common/encrypt-decrypt-content.spec';
-
+import { VoteForBlockProducer } from './common/vote-for-block-producer.spec';
+import { GetRawAbis } from './common/get-raw-abis.spec';
 const wallet1 = {
   privateKey: process.env.WALLET1_PRIVATE_KEY!,
   publicKey: getPublicKey({ privateKey: process.env.WALLET1_PRIVATE_KEY! }),
@@ -28,3 +29,5 @@ SignNonce({ wallet: wallet1 });
 SignTransaction({ wallet1, wallet2, apiUrl });
 DecryptContentFromOtherEncryption({ wallet1, wallet2 });
 EncryptDecryptContent({ wallet1, wallet2 });
+VoteForBlockProducer({ wallet: wallet1, apiUrl });
+GetRawAbis({ apiUrl });
