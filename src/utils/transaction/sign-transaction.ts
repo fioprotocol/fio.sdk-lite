@@ -122,13 +122,34 @@ export const signTransaction = async (
     } catch (error) {
       if (error instanceof Error) {
         const errorToPush: {
-          error: Error;
+          error: {
+            message: string;
+            name: string;
+            stack?: string;
+          };
           id: string;
-        } = { error, id: '0' };
+        } = {
+          error: {
+            message: error.message,
+            name: error.name,
+            stack: error.stack,
+          },
+          id: '0',
+        };
+
         if (actionParamItem?.id) {
           errorToPush.id = actionParamItem?.id || '0';
         }
         transactions.failed.push(errorToPush);
+      } else {
+        // Handle non-Error objects
+        transactions.failed.push({
+          error: {
+            message: String(error),
+            name: 'Unknown Error',
+          },
+          id: actionParamItem?.id || '0',
+        });
       }
     }
   }
